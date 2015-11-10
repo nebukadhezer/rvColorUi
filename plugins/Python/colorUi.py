@@ -28,7 +28,9 @@ class ColorUi(rvtypes.MinorMode):
                     [("color interface", self.showUi,"", None)]
                     )] 
                   )
+        self.NOT_INIT = True
         
+    def initUi(self):
         self.loader = QtUiTools.QUiLoader()
         uifile = QtCore.QFile(os.path.join(self.supportPath(colorUi, "colorUi"), "colorUiGui.ui"))
         uifile.open(QtCore.QFile.ReadOnly)
@@ -337,6 +339,9 @@ class ColorUi(rvtypes.MinorMode):
         self.saturation.setValue(1.0)
 
     def showUi(self,*args):
+        if self.NOT_INIT:
+            self.initUi()
+            self.NOT_INIT = False
         self.dialog.show()
         
     def activate(self,*args):
