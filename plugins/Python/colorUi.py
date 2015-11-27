@@ -21,14 +21,29 @@ class ColorUi(rvtypes.MinorMode):
     
     def __init__(self):
         rvtypes.MinorMode.__init__(self)
+        
+        self.showOnStartup = commands.readSettings("rvColorUi", "showOnStartUp", False)
+        self.copySourceToNuke = commands.readSettings("rvColorUi", "copySourceToNuke", False)
+
         self.init("color-ui", 
                   None, 
                   None,
-                  [("color ui",
-                    [("color interface", self.showUi,"", None)]
+                  [("Color Ui",
+                    [("Show Color Interface", self.showUi,"", None),
+                     ("Copy to Nuke", self.createNodesForNuke,"", None),
+                     ("Propagate to All", self.propagateToAllRvColor,"", None),
+                     ("Preferences",
+                      [("show Color Ui on Startup", self.toggleShowOnStartup, "", self.showOnStartupState),
+                       ("copy Source to Nuke", self.toggleCopyToNuke,"",self.copyToNukeState)
+                       ]
+                      )
+                     ]
                     )] 
                   )
         self.NOT_INIT = True
+        self.node = ''
+        if self.showOnStartup:
+            self.showUi('') #need to pass sth to event
         
     def initUi(self):
         self.loader = QtUiTools.QUiLoader()
@@ -67,8 +82,6 @@ class ColorUi(rvtypes.MinorMode):
         self.getSettingsNuke = self.dialog.findChild(QtGui.QPushButton, "getSettingsNuke")
         self.resetButton = self.dialog.findChild(QtGui.QPushButton, "reset")
         
-        self.node = ''
-        
         self.normalize  = self.dialog.findChild(QtGui.QCheckBox, "normalize")
         self.scaleCheck  = self.dialog.findChild(QtGui.QCheckBox, "gainCheckbox")
         self.gammaCheck  = self.dialog.findChild(QtGui.QCheckBox, "gammaCheckbox")
@@ -101,6 +114,34 @@ class ColorUi(rvtypes.MinorMode):
         self.createNodesNuke.clicked.connect(self.createNodesForNuke)
         self.propagateToAllColor.clicked.connect(self.propagateToAllRvColor)
         self.resetButton.clicked.connect(self.resetAllUi)
+        
+    def toggleShowOnStartup(self,event):
+        if not self.showOnStartup:
+            commands.writeSettings("rvColorUi", "showOnStartUp", True)
+            self.showOnStartup = True
+        else:
+            commands.writeSettings("rvColorUi", "showOnStartUp", False)
+            self.showOnStartup = False
+
+    def showOnStartupState(self):
+        if self.showOnStartup:
+            return commands.CheckedMenuState
+        else:
+            return commands.UncheckedMenuState
+        
+    def toggleCopyToNuke(self,event):
+        if not self.copySourceToNuke:
+            commands.writeSettings("rvColorUi", "copySourceToNuke", True)
+            self.copySourceToNuke = True
+        else:
+            commands.writeSettings("rvColorUi", "copySourceToNuke", False)
+            self.copySourceToNuke = False
+
+    def copyToNukeState(self):
+        if self.copySourceToNuke:
+            return commands.CheckedMenuState
+        else:
+            return commands.UncheckedMenuState
 
     def checkBoxPressed(self, checkbox, prop):
         def F():
@@ -257,6 +298,14 @@ class ColorUi(rvtypes.MinorMode):
         
         self.saturation.valueChanged.connect(self.changeSat)
         
+        
+    def filterClipboardfromNuke(self):
+        clipboard = QtGui.QApplication.clipboard()
+        text = clipboard.text()
+        #pattern detect grades and saturation nodes iterate through them and sum them up and apply the changes to 
+        #rvs color node
+        pattern = re.compile(r'(Saturation \{[a-zA-Z0-9{}]+\}|Grade \{[a-zA-Z0-9{}]+\})')
+        
     def testValueList(self, values, filter):
         '''
         filter a list for a given value return false if all values match filter
@@ -266,16 +315,18 @@ class ColorUi(rvtypes.MinorMode):
                 return True
         return False
         
-    def filterClipboardfromNuke(self):
-        clipboard = QtGui.QApplication.clipboard()
-        text = clipboard.text()
-        #pattern detect grades and saturation nodes iterate through them and sum them up and apply the changes to 
-        #rvs color node
-        pattern = re.compile(r'(Saturation \{[a-zA-Z0-9{}]+\}|Grade \{[a-zA-Z0-9{}]+\})')
-        
-        
-        
-    def createNodesForNuke(self):
+    def sanityCheckUpdatesForClipboard(self,values,filter,name):
+        ret = False
+        if self.testValueList(values, filter):
+            if self.NOT_INIT:
+                ret = True
+            else:
+                checkbox = getattr(self, '%sCheck' % name)
+                if checkbox.isChecked():
+                    ret = True
+        return ret
+    
+    def createNodesForNuke(self,event):
         '''
         creates nodes for nuke and copys them to the clipboard
         ctrl+v in nuke creates them
@@ -288,45 +339,53 @@ class ColorUi(rvtypes.MinorMode):
          saturation 0.9 saturation
         }
         '''
+        self.node = self.getCurrentColorNode()
+        if not self.node:
+            return
+        scale = [x for x in commands.getFloatProperty("%s.color.scale" % self.node,0,2500)]
+        exposure = [x+1 for x in commands.getFloatProperty("%s.color.exposure" % self.node,0,2500)]
+        offset =  [x for x in commands.getFloatProperty("%s.color.offset" % self.node,0,2500)]
+        gamma =  [x for x in commands.getFloatProperty("%s.color.gamma" % self.node,0,2500)]
+        saturation = [x for x in commands.getFloatProperty("%s.color.saturation" % self.node,0,2500)]
         
-        scale = self.getValuesFromList(self.scale)
-        exposure = [x+1 for x in self.getValuesFromList(self.exposure)]
-        offset = self.getValuesFromList(self.offset)
-        gamma = self.getValuesFromList(self.gamma)
-        
-        text = 'Grade {\n'
-        if self.testValueList(scale, 1.0) and self.scaleCheck.isChecked():
+        text = ''
+        if self.sanityCheckUpdatesForClipboard(scale, 1.0, 'scale') :
             text +=' white {%s %s %s 1}\n' % (scale[0],scale[1],scale[2])
-        if self.testValueList(exposure, 1.0) and self.exposureCheck.isChecked():
+        if self.sanityCheckUpdatesForClipboard(exposure, 1.0,'exposure') :
             text +=' multiply {%s %s %s 1}\n' % (exposure[0],exposure[1],exposure[2])
-        if self.testValueList(offset, 0.0) and self.offsetCheck.isChecked():
+        if self.sanityCheckUpdatesForClipboard(offset, 0.0,'offset'):
             text +=' add {%s %s %s 1}\n' % (offset[0],offset[1],offset[2])
-        if self.testValueList(gamma, 1.0) and self.gammaCheck.isChecked():
+        if self.sanityCheckUpdatesForClipboard(gamma, 1.0, 'gamma'):
             text +=' gamma {%s %s %s 1}\n' % (gamma[0],gamma[1],gamma[2])
-        text +='}\n\n'
-        if self.testValueList([self.saturation.value()], 1.0):
+            
+        if text:
+            text ='Grade {\n%s}\n\n' % (text)
+        if self.testValueList(saturation, 1.0):
             text +='Saturation {\n'
-            text +=' saturation %s\n' % self.saturation.value()
+            text +=' saturation %s\n' % saturation
             text +='}\n'
+        if self.copySourceToNuke:
+            # build a read node and prepend it to text
+            pass
         
         clipboard = QtGui.QApplication.clipboard()
         clipboard.setText(text)
             
-    def propagateToAllRvColor(self):
+    def propagateToAllRvColor(self,event):
         '''
         sets the current settings to all rvcolor nodes found 
         '''
+        self.node = self.getCurrentColorNode()
+        if not self.node:
+            return
         nodes = commands.nodesOfType('RVColor')
         propList = ['gamma','scale','offset','exposure','saturation']
         for node in nodes:
             for prop in propList:
-                correction = getattr(self,prop)
-                if prop == 'saturation':
-                    values =  [self.saturation.value()]
-                else:
-                    values = self.getValuesFromList(correction)
+                values = [x for x in commands.getFloatProperty("%s.color.%s" % (self.node,prop),0,2500)]
                 try:
-                    commands.setFloatProperty("%s.color.%s" % (node,prop), values, True)
+                    if node != self.node:
+                        commands.setFloatProperty("%s.color.%s" % (node,prop), values, True)
                 except Exception, e:
                     print e
 
@@ -338,15 +397,14 @@ class ColorUi(rvtypes.MinorMode):
             check.setCheckState(QtCore.Qt.Checked)
         self.saturation.setValue(1.0)
 
-    def showUi(self,*args):
+    def showUi(self, event):
         if self.NOT_INIT:
             self.initUi()
             self.NOT_INIT = False
         self.dialog.show()
         
-    def activate(self,*args):
+    def activate(self):
         rvtypes.MinorMode.activate(self)
-        #self.dialog.show()
 
     def deactivate(self):
         rvtypes.MinorMode.deactivate(self)
