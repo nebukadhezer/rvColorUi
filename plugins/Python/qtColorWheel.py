@@ -2,12 +2,10 @@
 # https://code.google.com/p/dedafx-dev/source/browse/trunk/python/gui/qt/ColorWheel.py?r=3
 # ben deda from whom this derived
 
-import sys, math
+import sys
+import math
 import PySide.QtGui as QtGui
 import PySide.QtCore as QtCore
-
-import datetime
-
 
 
 class ColorWheelWidget(QtGui.QWidget):
@@ -42,8 +40,6 @@ class ColorWheelWidget(QtGui.QWidget):
         # this is the color value that this widget represents
         self.color = QtGui.QColor()
 
-
-
         # the color wheel image, only needs to be generated once
         self.image = QtGui.QImage(self.master_radius*2, self.master_radius*2, QtGui.QImage.Format_ARGB32)
         # this is the image for the current color selection
@@ -58,14 +54,11 @@ class ColorWheelWidget(QtGui.QWidget):
         self.points2 = self.getRadialLinePoints((self.dim / 2), self.master_radius, 135)            
         self.image.fill(color)
 
-
         self.color.setRgbF(min(1,max(0,my_Knob[0])),min(1,max(0,my_Knob[1])),min(1,max(0,my_Knob[2])))
-
 
         self.luma = (my_Knob[3]/2.0)*255.0
         self.hue = self.color.hueF()*255.0
         self.sat = self.color.saturationF()*255.0
-   
 
         self.setUIColor(self.hue,self.sat,self.luma) 
 
@@ -91,7 +84,6 @@ class ColorWheelWidget(QtGui.QWidget):
         self.setUIColor(self.hue,self.sat,self.luma) 
         self.setColor(self.hue, self.sat, self.luma)
 
-
     def getRadialLinePoints(self, r_inner, r_outer, angle,distance=1.0):
         rad = math.radians(angle)
         sr = math.sin(rad)
@@ -104,6 +96,7 @@ class ColorWheelWidget(QtGui.QWidget):
   
     def getRot(self, x, y):
         return ( math.degrees ( math.atan2 ( 2*(x - self.master_radius),2*(y - self.master_radius)))) % 360
+    
     def getLum(self, x, y):
         return ( math.degrees ( math.atan2 ( 2.0*(x - self.master_radius),2.0*(y - self.master_radius)))) % 360
 
@@ -111,7 +104,6 @@ class ColorWheelWidget(QtGui.QWidget):
         return ( math.degrees ( math.atan2 ( 2*(x - self.master_radius),2*(y - self.master_radius))) + 165 ) % 360
     
     def setColor(self, h, s, v):
-
         self.color.setHsvF(0.0,0.0,min(1,v/255.0))
         alpha = self.current_image.alphaChannel()
         self.current_image.fill(self.color.rgb())
@@ -129,7 +121,6 @@ class ColorWheelWidget(QtGui.QWidget):
         self.current_image.setAlphaChannel(alpha)
         self.current_imageB.fill(self.color.rgb())
         self.current_imageB.setAlphaChannel(alpha)
-        #self.colorSignal.emit(self.getRgbFloat())
         self.update()
 
     def reset(self,x):
@@ -155,7 +146,6 @@ class ColorWheelWidget(QtGui.QWidget):
             except: 
                 print "Error trying to send values to color control. Make sure all layouts are set to 4 Colors and not 1"
 
-        
     def getDist(self, (x1, y1), (x2, y2)):
         return math.sqrt((x2-x1)**2 + (y2-y1)**2)
     
@@ -169,7 +159,6 @@ class ColorWheelWidget(QtGui.QWidget):
                 True]
         return ret
     
-        
     def paintEvent(self, evt):
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -200,9 +189,7 @@ class ColorWheelWidget(QtGui.QWidget):
         center = QtCore.QPointF(self.center[0],self.center[1] )
         
         painter.drawEllipse(center, r, r ) #DRAW THE OUTER BLACK CIRCLE
-
-
-   
+        
         #LUMINANCE ARC
         pen.setWidth(3) #Outline Width
         pen.setColor(QtGui.QColor(150,150,150)) #Outline Color
@@ -242,7 +229,6 @@ class ColorWheelWidget(QtGui.QWidget):
         (x1,y1,x2,y2) = self.points
         (x1,y1,x2,y2) = self.points2
 
-
         #Draw the GuideLines
         pen.setWidth(1.99)
         pen.setColor(QtGui.QColor(220,220,220))
@@ -261,7 +247,6 @@ class ColorWheelWidget(QtGui.QWidget):
             if d != 0:
                 painter.drawEllipse(QtCore.QPointF(self.master_radius, self.master_radius), d, d)
 
-
         #Draw Hue Dot
         pen.setWidth(1)
         pen.setStyle(QtCore.Qt.PenStyle.SolidLine)
@@ -273,8 +258,6 @@ class ColorWheelWidget(QtGui.QWidget):
         painter.setBrush(brush)
         painter.drawEllipse(QtCore.QPointF(hpx, hpy), 5, 5)
 
-
-
     def setUIColor(self,h,s,v):
         (x1,y1,x2,y2) = self.getRadialLinePoints((self.dim / 2.0), self.master_radius,  ((self.hue/255)*360)+15,(s/255.0))
         self.huepoint = (x2,y2)
@@ -282,11 +265,8 @@ class ColorWheelWidget(QtGui.QWidget):
         self.currentPoint = (x2,y2)
         #Saturation
         self.value_angleSat = (1.0-((s/255.0) * 90.0)) + 135.0       
-
         #Luminance
         self.value_angle = ((v/255.0) * 360.0) 
-
-
         
     def alterColor(self, x, y):    
         d = 2.0 * self.getDist((x,y),self.center) / self.dim
@@ -312,11 +292,8 @@ class ColorWheelWidget(QtGui.QWidget):
             v = (lum/360.0)*255.0
             self.setColor(self.color.hueF(), self.color.saturationF(), v)
             self.luma = v
-
-
         else:
             pass
-
 
     def mousePressEvent(self, evt):
         self.setstate = 1
@@ -350,16 +327,12 @@ class ColorWheelWidget(QtGui.QWidget):
                 self.guiSelection = 3
         self.bMouseDown = True
 
-
-
-
     def mouseMoveEvent(self, evt):
         self.setstate = 1
         nMilliseconds = self.myTimer.elapsed()
         if nMilliseconds < 1:
             pass
         else:
-
             modifiers = QtGui.QApplication.keyboardModifiers()
             self.shiftDown = False
             self.ctrlDown = False
@@ -381,13 +354,11 @@ class ColorWheelWidget(QtGui.QWidget):
                 if self.guiSelection == 1 or self.guiSelection == 2:
                     self.alterColor(evt.x(), evt.y())
                 else:
-
                     x = (((evt.x()-self.initialPoint[0]) * self.colorWheelSensitivity))+self.lastPoint[0]
                     y = (((evt.y()-self.initialPoint[1]) * self.colorWheelSensitivity))+self.lastPoint[1]
                     self.alterColor(x, y)
                     self.currentPoint = (x, y) 
             self.myTimer.restart()
-        
 
     def mouseReleaseEvent(self, evt):
         self.setstate = 2

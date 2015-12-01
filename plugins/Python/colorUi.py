@@ -88,13 +88,16 @@ class ColorUi(rvtypes.MinorMode):
         self.exposureCheck = self.dialog.findChild(QtGui.QCheckBox, "exposureCheckbox")
         self.offsetCheck  = self.dialog.findChild(QtGui.QCheckBox, "offsetCheckbox")
         self.saturation = self.dialog.findChild(QtGui.QDoubleSpinBox, "saturation")
+        self.hue = self.dialog.findChild(QtGui.QDoubleSpinBox, "hue")
         self.gamma = self.findSet(QtGui.QDoubleSpinBox, ["gammaRed", "gammaGreen", "gammaBlue"])
         self.scale = self.findSet(QtGui.QDoubleSpinBox, ["gainRed", "gainGreen", "gainBlue"])
         self.offset = self.findSet(QtGui.QDoubleSpinBox, ["offsetRed", "offsetGreen", "offsetBlue"])
         self.exposure = self.findSet(QtGui.QDoubleSpinBox, ["exposureRed", "exposureGreen", "exposureBlue"])
         
-        commands.bind("default", "global", "frame-changed", self.onFrameChangeAndAddSource, 'New frame')
-        commands.bind("default", "global", "source-group-complete", self.onFrameChangeAndAddSource, 'New frame')
+        commands.bind("default", "global", "frame-changed", self.onFrameChangeAndAddDelSource, 'New frame')
+        commands.bind("default", "global", "source-group-complete", self.onFrameChangeAndAddDelSource, 'New frame')
+        commands.bind("default", "global", "after-source-delete", self.onFrameChangeAndAddDelSource, 'New frame')
+        
         #commands.bind("default", "global", "graph-state-change", self.onGraphStateChange, 'New frame')
         #maybe put the update in a thread to get rid of the sluggishness
         
@@ -208,14 +211,6 @@ class ColorUi(rvtypes.MinorMode):
         for e,color in enumerate(rgb):
             change[e].setValue(color)
             
-    def changeSat(self):
-        property = 'saturation'
-        values = [self.saturation.value()]
-        try:
-            commands.setFloatProperty("%s.color.%s" % (self.node,property), values, True)
-        except Exception, e:
-            print e
-            
     def findSet(self, typeObj, names):
         array = []
         for n in names:
@@ -225,9 +220,12 @@ class ColorUi(rvtypes.MinorMode):
         return array
 
     def getValuesFromList(self,x):
-        ret = list()
-        for e,item in enumerate(x):
-            ret.append(item.value())
+        if isinstance(x, list):
+            ret = list()
+            for e,item in enumerate(x):
+                ret.append(item.value())
+        else:
+            ret = [x.value()]
         return ret
 
     def getCurrentColorNode(self):
@@ -243,6 +241,11 @@ class ColorUi(rvtypes.MinorMode):
             return
         
     def onGraphStateChange(self,event):
+        '''
+        used to get updates from the color node
+        wanted to get the shortcuts relfected in the ui too
+        might be better to just override the shortcuts exactly in this module than link to updates from the nodegraph
+        '''
         x = event.contents()
         #y = event.contentType()
         print x
@@ -260,7 +263,7 @@ class ColorUi(rvtypes.MinorMode):
         for gamma in self.gamma:
             gamma.valueChanged.connect(lambda: self.changeRvColorFromSpinBox("gamma"))
         
-    def onFrameChangeAndAddSource(self, event):
+    def onFrameChangeAndAddDelSource(self, event):
         '''
         do the main updates in here
         first update the gui with the current settings from the RVColor Node
@@ -283,6 +286,7 @@ class ColorUi(rvtypes.MinorMode):
         self.updateSpinBoxes('exposure', [x for x in commands.getFloatProperty("%s.color.exposure" % self.node,0,2500)])
         self.updateSpinBoxes('offset', [x for x in commands.getFloatProperty("%s.color.offset" % self.node,0,2500)])
         self.updateSpinBoxes('saturation', [x for x in commands.getFloatProperty("%s.color.saturation" % self.node,0,2500)])
+        self.updateSpinBoxes('hue', [x for x in commands.getFloatProperty("%s.color.hue" % self.node,0,2500)])
         
         self.active.released.connect(self.checkBoxPressed(self.active, "%s.color.active" % self.node))
         self.invert.released.connect(self.checkBoxPressed(self.invert, "%s.color.invert" % self.node))
@@ -296,7 +300,8 @@ class ColorUi(rvtypes.MinorMode):
         for exp in self.exposure:
             exp.valueChanged.connect(lambda: self.changeRvColorFromSpinBox("exposure"))
         
-        self.saturation.valueChanged.connect(self.changeSat)
+        self.saturation.valueChanged.connect(lambda: self.changeRvColorFromSpinBox("saturation"))
+        self.hue.valueChanged.connect(lambda: self.changeRvColorFromSpinBox("hue"))
         
         
     def filterClipboardfromNuke(self):
@@ -326,7 +331,7 @@ class ColorUi(rvtypes.MinorMode):
                     ret = True
         return ret
     
-    def createNodesForNuke(self,event):
+    def createNodesForNuke(self,*event):
         '''
         creates nodes for nuke and copys them to the clipboard
         ctrl+v in nuke creates them
@@ -371,7 +376,7 @@ class ColorUi(rvtypes.MinorMode):
         clipboard = QtGui.QApplication.clipboard()
         clipboard.setText(text)
             
-    def propagateToAllRvColor(self,event):
+    def propagateToAllRvColor(self,*event):
         '''
         sets the current settings to all rvcolor nodes found 
         '''
@@ -402,6 +407,7 @@ class ColorUi(rvtypes.MinorMode):
             self.initUi()
             self.NOT_INIT = False
         self.dialog.show()
+        self.node = self.getCurrentColorNode()
         
     def activate(self):
         rvtypes.MinorMode.activate(self)
