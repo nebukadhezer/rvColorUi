@@ -49,6 +49,9 @@ class ColorUi(rvtypes.MinorMode):
         self.loader = QtUiTools.QUiLoader()
         uifile = QtCore.QFile(os.path.join(self.supportPath(colorUi, "colorUi"), "colorUiGui.ui"))
         uifile.open(QtCore.QFile.ReadOnly)
+        data_str = open(os.path.join(self.supportPath(colorUi, "colorUi"), "colorUiLogo.png"), 'rb').read()
+        qimg = QtGui.QImage.fromData(data_str, 'PNG')
+        qpix = QtGui.QPixmap.fromImage(qimg)
         self.widgets = self.loader.load(uifile)
 
         self.colorWheelScale = qtColorWheel.ColorWheelWidget(name='scale')
@@ -81,6 +84,10 @@ class ColorUi(rvtypes.MinorMode):
         self.propagateToAllColor = self.dialog.findChild(QtGui.QPushButton, "propagateToAllColor")
         self.getSettingsNuke = self.dialog.findChild(QtGui.QPushButton, "getSettingsNuke")
         self.resetButton = self.dialog.findChild(QtGui.QPushButton, "reset")
+        self.enable = self.dialog.findChild(QtGui.QPushButton, "enableAll")
+        self.disable = self.dialog.findChild(QtGui.QPushButton, "disableAll")
+        self.logo = self.dialog.findChild(QtGui.QLabel, "logo")
+        self.logo.setPixmap(qpix.scaled(128, 128, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         
         self.normalize  = self.dialog.findChild(QtGui.QCheckBox, "normalize")
         self.scaleCheck  = self.dialog.findChild(QtGui.QCheckBox, "gainCheckbox")
@@ -117,6 +124,8 @@ class ColorUi(rvtypes.MinorMode):
         self.createNodesNuke.clicked.connect(self.createNodesForNuke)
         self.propagateToAllColor.clicked.connect(self.propagateToAllRvColor)
         self.resetButton.clicked.connect(self.resetAllUi)
+        self.enable.clicked.connect(self.enableAll)
+        self.disable.clicked.connect(self.disableAll)
         
     def toggleShowOnStartup(self,event):
         if not self.showOnStartup:
@@ -145,17 +154,16 @@ class ColorUi(rvtypes.MinorMode):
             return commands.CheckedMenuState
         else:
             return commands.UncheckedMenuState
-
-    def checkBoxPressed(self, checkbox, prop):
-        def F():
-            try:
-                if checkbox.isChecked():
-                    commands.setIntProperty(prop, [1], True)
-                else:
-                    commands.setIntProperty(prop, [0], True)
-            except Exception, e:
-                print e
-        return F
+        
+    def changeBoolProperty(self,property):
+        change = getattr(self, property)
+        try:
+            if change.isChecked():
+                commands.setIntProperty("%s.color.%s" % (self.node,property), [1], True)
+            else:
+                commands.setIntProperty("%s.color.%s" % (self.node,property), [0], True)
+        except Exception, e:
+            print e
     
     @QtCore.Slot(list)
     def changeRvColor(self, values):
@@ -275,7 +283,10 @@ class ColorUi(rvtypes.MinorMode):
             return #we do not have to run updates if we are still on the same color node as all connections are set
         else:
             self.node=node
-        ##this seems to not be working as the color active is not a per node setting ?! need to ask support
+        #print 'got triggered on %s and node %s' %(event.contents(),self.node)
+        if not self.node:
+            return
+        
         if int(commands.getIntProperty("%s.color.active" % self.node,0,2500)[0]) == int(1):
             self.active.setCheckState(QtCore.Qt.Checked)
         else:
@@ -288,8 +299,8 @@ class ColorUi(rvtypes.MinorMode):
         self.updateSpinBoxes('saturation', [x for x in commands.getFloatProperty("%s.color.saturation" % self.node,0,2500)])
         self.updateSpinBoxes('hue', [x for x in commands.getFloatProperty("%s.color.hue" % self.node,0,2500)])
         
-        self.active.released.connect(self.checkBoxPressed(self.active, "%s.color.active" % self.node))
-        self.invert.released.connect(self.checkBoxPressed(self.invert, "%s.color.invert" % self.node))
+        self.active.released.connect(lambda: self.changeBoolProperty("active"))
+        self.invert.released.connect(lambda: self.changeBoolProperty("invert"))
         
         for gamma in self.gamma:
             gamma.valueChanged.connect(lambda: self.changeRvColorFromSpinBox("gamma"))
@@ -376,6 +387,36 @@ class ColorUi(rvtypes.MinorMode):
         clipboard = QtGui.QApplication.clipboard()
         clipboard.setText(text)
             
+    def enableAll(self, *event):
+        '''
+        enable all rv color nodes
+        '''
+        self.node = self.getCurrentColorNode()
+        if not self.node:
+            return
+        nodes = commands.nodesOfType('RVColor')
+        for node in nodes:
+            try:
+                commands.setIntProperty("%s.color.active" % (node), [1], True)
+            except Exception, e:
+                print e
+        self.active.setCheckState(QtCore.Qt.Checked)
+        
+    def disableAll(self, *event):
+        '''
+        disable all rv color nodes
+        '''
+        self.node = self.getCurrentColorNode()
+        if not self.node:
+            return
+        nodes = commands.nodesOfType('RVColor')
+        for node in nodes:
+            try:
+                commands.setIntProperty("%s.color.active" % (node), [0], True)
+            except Exception, e:
+                print e
+        self.active.setCheckState(QtCore.Qt.Unchecked)
+                
     def propagateToAllRvColor(self,*event):
         '''
         sets the current settings to all rvcolor nodes found 
@@ -384,13 +425,17 @@ class ColorUi(rvtypes.MinorMode):
         if not self.node:
             return
         nodes = commands.nodesOfType('RVColor')
-        propList = ['gamma','scale','offset','exposure','saturation']
+        propList = ['gamma','scale','offset','exposure','saturation','hue']
+        doActive = 0
+        if int(commands.getIntProperty("%s.color.active" % self.node,0,2500)[0]) == int(1):
+            doActive = 1
         for node in nodes:
             for prop in propList:
                 values = [x for x in commands.getFloatProperty("%s.color.%s" % (self.node,prop),0,2500)]
                 try:
                     if node != self.node:
                         commands.setFloatProperty("%s.color.%s" % (node,prop), values, True)
+                        commands.setIntProperty("%s.color.active" % (node), [doActive], True)
                 except Exception, e:
                     print e
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1509</width>
-    <height>221</height>
+    <width>1508</width>
+    <height>242</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,64 +17,91 @@
    <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
-      <string>Basic Settings</string>
+      <string>Color Node Settings</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_4">
-      <item row="2" column="1">
-       <widget class="QDoubleSpinBox" name="saturation">
-        <property name="singleStep">
-         <double>0.100000000000000</double>
-        </property>
-        <property name="value">
-         <double>1.000000000000000</double>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_9">
-        <property name="text">
-         <string>Hue</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_8">
-        <property name="text">
-         <string>Saturation</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0" colspan="2">
+     <layout class="QVBoxLayout" name="verticalLayout_6">
+      <item>
        <widget class="QCheckBox" name="active">
         <property name="text">
-         <string>enable CCs</string>
+         <string>active</string>
         </property>
         <property name="checked">
          <bool>false</bool>
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
+      <item>
        <widget class="QCheckBox" name="invert">
         <property name="text">
          <string>invert</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
-       <widget class="QDoubleSpinBox" name="hue">
-        <property name="maximum">
-         <double>360.000000000000000</double>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QLabel" name="label_8">
+          <property name="text">
+           <string>Saturation</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="saturation">
+          <property name="singleStep">
+           <double>0.100000000000000</double>
+          </property>
+          <property name="value">
+           <double>1.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QLabel" name="label_9">
+          <property name="text">
+           <string>Hue</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="hue">
+          <property name="minimum">
+           <double>-100.000000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>100.000000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.100000000000000</double>
+          </property>
+          <property name="value">
+           <double>0.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QLabel" name="logo">
+        <property name="minimumSize">
+         <size>
+          <width>128</width>
+          <height>10</height>
+         </size>
         </property>
-        <property name="singleStep">
-         <double>10.000000000000000</double>
+        <property name="text">
+         <string/>
         </property>
-        <property name="value">
-         <double>0.000000000000000</double>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item>
        <spacer name="verticalSpacer_9">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -82,7 +109,7 @@
         <property name="sizeHint" stdset="0">
          <size>
           <width>20</width>
-          <height>40</height>
+          <height>0</height>
          </size>
         </property>
        </spacer>
@@ -562,8 +589,42 @@
      <property name="title">
       <string>Helper</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="1" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QPushButton" name="enableAll">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;enable all rv color nodes&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>enable</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="disableAll">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;disable all rv color nodes&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>disable</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QPushButton" name="createNodesNuke">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;this will create Nodes for Nuke that can be pasted inside Nuke&lt;/p&gt;&lt;p&gt;it will be a saturation Node; Grade Node and a Exposure Node,&lt;/p&gt;&lt;p&gt;depending which corrections have been applied to rvs color Node&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>copy to nuke</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="getSettingsNuke">
         <property name="toolTip">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;select Nodes in Nuke and Copy them to the clipboard &lt;/p&gt;&lt;p&gt;then those nodes will be parsed and the settings be applied&lt;/p&gt;&lt;p&gt;of course only gain / gamma / saturation / offset will be used&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -573,7 +634,24 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item>
+       <widget class="QPushButton" name="propagateToAllColor">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;copy the settings from the current rvcolor node to all rvcolor nodes&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>propagate</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="reset">
+        <property name="text">
+         <string>reset</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="verticalSpacer_10">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -585,33 +663,6 @@
          </size>
         </property>
        </spacer>
-      </item>
-      <item row="0" column="0">
-       <widget class="QPushButton" name="createNodesNuke">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;this will create Nodes for Nuke that can be pasted inside Nuke&lt;/p&gt;&lt;p&gt;it will be a saturation Node; Grade Node and a Exposure Node,&lt;/p&gt;&lt;p&gt;depending which corrections have been applied to rvs color Node&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>copy to nuke</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QPushButton" name="propagateToAllColor">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;copy the settings from the current rvcolor node to all rvcolor nodes&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>propagate</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QPushButton" name="reset">
-        <property name="text">
-         <string>reset</string>
-        </property>
-       </widget>
       </item>
      </layout>
     </widget>
