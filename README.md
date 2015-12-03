@@ -13,8 +13,8 @@ Usage:
 
 **Known issues:**  
 - get from nuke not working
-- hotkeys in RV are working (y-->rgb or e---> rgb)
-- include source not setup yet  
+- include source not setup yet
+- hotkeys in RV are working (y-->rgb or e---> rgb)  
 **but are not directly updating the ui,**  
 a frame change updates the ui so one can see the changes  
 the graph-state-change event slows rv down, even when only printing content from it  
